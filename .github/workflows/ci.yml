@@ -17,7 +17,9 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - run: npm ci
+      # Windows-generated lockfile omits Linux-native optional binaries
+      # (lightningcss/swc for Tailwind v4); reinstall so they resolve.
+      - run: rm -f package-lock.json && npm install --no-audit --no-fund
       - run: npm run db:generate
       - run: npm run test:api
       - run: npm run build:api
@@ -47,7 +49,9 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - run: npm ci
+      # Windows-generated lockfile omits Linux-native optional binaries
+      # (lightningcss/swc for Tailwind v4); reinstall so they resolve.
+      - run: rm -f package-lock.json && npm install --no-audit --no-fund
       - run: npm run db:generate
       - name: Push schema + seed
         run: |
