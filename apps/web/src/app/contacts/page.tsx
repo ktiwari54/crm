@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/Badge';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { HistoryDrawer } from '@/components/HistoryDrawer';
 import {
   FormField,
   inputClass,
@@ -24,6 +25,7 @@ type Contact = {
   lastName: string;
   email: string | null;
   phone: string | null;
+  mobile: string | null;
   title: string | null;
   isPrimary: boolean;
   account: { id: string; name: string };
@@ -34,6 +36,8 @@ type Account = { id: string; name: string };
 export default function ContactsPage() {
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [history, setHistory] = useState<Contact | null>(null);
+  const [edit, setEdit] = useState<Contact | null>(null);
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -136,7 +140,7 @@ export default function ContactsPage() {
                     <td className="px-6 py-4 text-slate-600">{c.title ?? '—'}</td>
                     <td className="px-6 py-4 text-slate-600">{c.email ?? '—'}</td>
                     <td className="px-6 py-4 text-slate-600">{c.phone ?? '—'}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       {c.phone ? (
                         <button
                           type="button"
@@ -145,7 +149,21 @@ export default function ContactsPage() {
                         >
                           📞 Call
                         </button>
-                      ) : '—'}
+                      ) : null}
+                      <button
+                        type="button"
+                        className="ml-3 text-sm font-medium text-slate-600 hover:underline"
+                        onClick={() => setEdit(c)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="ml-3 text-sm font-medium text-slate-500 hover:underline"
+                        onClick={() => setHistory(c)}
+                      >
+                        History
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -193,6 +211,88 @@ export default function ContactsPage() {
           </div>
         </form>
       </Modal>
+
+      {history ? (
+        <HistoryDrawer
+          entityType="contact"
+          entityId={history.id}
+          title={`${history.firstName} ${history.lastName}`}
+          onClose={() => setHistory(null)}
+          onReverted={() => void reload()}
+        />
+      ) : null}
+
+      {edit ? (
+        <EditContactModal
+          contact={edit}
+          accounts={accounts.data ?? []}
+          onClose={() => setEdit(null)}
+          onDone={() => { setEdit(null); void reload(); }}
+        />
+      ) : null}
     </div>
+  );
+}
+
+function EditContactModal({
+  contact,
+  accounts,
+  onClose,
+  onDone,
+}: {
+  contact: Contact;
+  accounts: Account[];
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [f, setF] = useState({
+    firstName: contact.firstName ?? '',
+    lastName: contact.lastName ?? '',
+    email: contact.email ?? '',
+    phone: contact.phone ?? '',
+    mobile: contact.mobile ?? '',
+    title: contact.title ?? '',
+    accountId: contact.account.id,
+  });
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    setBusy(true);
+    try {
+      const { accountId, ...rest } = f;
+      await apiFetch(`/contacts/${contact.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ ...rest, account: { connect: { id: accountId } } }),
+      });
+      onDone();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to save');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal open title={`Edit ${contact.firstName} ${contact.lastName}`} onClose={onClose}>
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          <FormField label="First Name"><input value={f.firstName} onChange={(e) => setF({ ...f, firstName: e.target.value })} className={inputClass} /></FormField>
+          <FormField label="Last Name"><input value={f.lastName} onChange={(e) => setF({ ...f, lastName: e.target.value })} className={inputClass} /></FormField>
+          <FormField label="Email"><input value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} className={inputClass} /></FormField>
+          <FormField label="Title"><input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} className={inputClass} /></FormField>
+          <FormField label="Phone"><input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} className={inputClass} /></FormField>
+          <FormField label="Mobile"><input value={f.mobile} onChange={(e) => setF({ ...f, mobile: e.target.value })} className={inputClass} /></FormField>
+        </div>
+        <FormField label="Account">
+          <select value={f.accountId} onChange={(e) => setF({ ...f, accountId: e.target.value })} className={selectClass}>
+            {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+        </FormField>
+        <div className="flex justify-end gap-2 pt-1">
+          <button type="button" className={btnSecondary} onClick={onClose}>Cancel</button>
+          <button type="button" className={btnPrimary} onClick={save} disabled={busy || !f.firstName}>{busy ? 'Saving…' : 'Save'}</button>
+        </div>
+      </div>
+    </Modal>
   );
 }

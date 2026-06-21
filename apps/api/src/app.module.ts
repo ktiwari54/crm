@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ChangeTrackingModule } from './modules/change-tracking/change-tracking.module';
 import { AuthModule } from './auth/auth.module';
 import { AccountsModule } from './modules/accounts/accounts.module';
 import { ActivitiesModule } from './modules/activities/activities.module';
@@ -70,6 +71,7 @@ import { StorageModule } from './storage/storage.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
+    ChangeTrackingModule,
     PrismaModule,
     StorageModule,
     AuthModule,

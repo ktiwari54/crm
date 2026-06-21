@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/Badge';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { HistoryDrawer } from '@/components/HistoryDrawer';
 import {
   FormField,
   inputClass,
@@ -28,6 +29,14 @@ type Account = {
   healthScore: string | null;
   industry: string | null;
   paymentTerms: string | null;
+  country?: string | null;
+  vatNumber?: string | null;
+  gstNumber?: string | null;
+  tradeLicenseNumber?: string | null;
+  registrationNumber?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  website?: string | null;
   territory: { name: string } | null;
   owner: { firstName: string; lastName: string } | null;
 };
@@ -39,6 +48,8 @@ export default function AccountsPage() {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [history, setHistory] = useState<Account | null>(null);
+  const [edit, setEdit] = useState<Account | null>(null);
   const [form, setForm] = useState({
     name: '',
     accountType: 'customer',
@@ -178,6 +189,20 @@ export default function AccountsPage() {
                       >
                         View graph
                       </Link>
+                      <button
+                        type="button"
+                        className="ml-3 text-xs text-slate-600 hover:underline"
+                        onClick={() => setEdit(account)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="ml-3 text-xs text-slate-500 hover:underline"
+                        onClick={() => setHistory(account)}
+                      >
+                        History
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -232,6 +257,80 @@ export default function AccountsPage() {
           </div>
         </form>
       </Modal>
+
+      {history ? (
+        <HistoryDrawer
+          entityType="account"
+          entityId={history.id}
+          title={history.name}
+          onClose={() => setHistory(null)}
+          onReverted={() => void reload()}
+        />
+      ) : null}
+
+      {edit ? <EditAccountModal account={edit} onClose={() => setEdit(null)} onDone={() => { setEdit(null); void reload(); }} /> : null}
     </div>
+  );
+}
+
+function EditAccountModal({ account, onClose, onDone }: { account: Account; onClose: () => void; onDone: () => void }) {
+  const [f, setF] = useState({
+    name: account.name ?? '',
+    accountType: account.accountType ?? 'customer',
+    industry: account.industry ?? '',
+    paymentTerms: account.paymentTerms ?? '',
+    country: account.country ?? '',
+    vatNumber: account.vatNumber ?? '',
+    gstNumber: account.gstNumber ?? '',
+    tradeLicenseNumber: account.tradeLicenseNumber ?? '',
+    registrationNumber: account.registrationNumber ?? '',
+    email: account.email ?? '',
+    phone: account.phone ?? '',
+    website: account.website ?? '',
+  });
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    setBusy(true);
+    try {
+      await apiFetch(`/accounts/${account.id}`, { method: 'PATCH', body: JSON.stringify(f) });
+      onDone();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to save');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal open title={`Edit ${account.name}`} onClose={onClose}>
+      <div className="max-h-[28rem] space-y-3 overflow-y-auto pr-1">
+        <FormField label="Name"><input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} className={inputClass} /></FormField>
+        <div className="grid grid-cols-2 gap-3">
+          <FormField label="Type">
+            <select value={f.accountType} onChange={(e) => setF({ ...f, accountType: e.target.value })} className={selectClass}>
+              <option value="customer">Customer</option>
+              <option value="prospect">Prospect</option>
+              <option value="partner">Partner</option>
+              <option value="vendor">Vendor</option>
+            </select>
+          </FormField>
+          <FormField label="Industry"><input value={f.industry} onChange={(e) => setF({ ...f, industry: e.target.value })} className={inputClass} /></FormField>
+          <FormField label="Country"><input value={f.country} onChange={(e) => setF({ ...f, country: e.target.value })} className={inputClass} /></FormField>
+          <FormField label="Payment Terms"><input value={f.paymentTerms} onChange={(e) => setF({ ...f, paymentTerms: e.target.value })} className={inputClass} /></FormField>
+          <FormField label="VAT Number"><input value={f.vatNumber} onChange={(e) => setF({ ...f, vatNumber: e.target.value })} className={inputClass} /></FormField>
+          <FormField label="GST Number"><input value={f.gstNumber} onChange={(e) => setF({ ...f, gstNumber: e.target.value })} className={inputClass} /></FormField>
+          <FormField label="Trade License #"><input value={f.tradeLicenseNumber} onChange={(e) => setF({ ...f, tradeLicenseNumber: e.target.value })} className={inputClass} /></FormField>
+          <FormField label="Registration #"><input value={f.registrationNumber} onChange={(e) => setF({ ...f, registrationNumber: e.target.value })} className={inputClass} /></FormField>
+          <FormField label="Email"><input value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} className={inputClass} /></FormField>
+          <FormField label="Phone"><input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} className={inputClass} /></FormField>
+        </div>
+        <FormField label="Website"><input value={f.website} onChange={(e) => setF({ ...f, website: e.target.value })} className={inputClass} /></FormField>
+        <div className="flex justify-end gap-2 pt-1">
+          <button type="button" className={btnSecondary} onClick={onClose}>Cancel</button>
+          <button type="button" className={btnPrimary} onClick={save} disabled={busy || !f.name}>{busy ? 'Saving…' : 'Save'}</button>
+        </div>
+      </div>
+    </Modal>
   );
 }

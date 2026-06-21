@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ChangeTrackingService } from '../change-tracking/change-tracking.service';
 
 @Injectable()
 export class ContactsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly tracking: ChangeTrackingService,
+  ) {}
 
   findAll(accountId?: string) {
     return this.prisma.contact.findMany({
@@ -26,27 +30,33 @@ export class ContactsService {
     return contact;
   }
 
-  create(data: Prisma.ContactCreateInput) {
-    return this.prisma.contact.create({
+  async create(data: Prisma.ContactCreateInput, userId?: string) {
+    const contact = await this.prisma.contact.create({
       data,
       include: { account: true },
     });
+    await this.tracking.recordCreate('contact', contact.id, contact as never, userId);
+    return contact;
   }
 
-  async update(id: string, data: Prisma.ContactUpdateInput) {
-    await this.findOne(id);
-    return this.prisma.contact.update({
+  async update(id: string, data: Prisma.ContactUpdateInput, userId?: string) {
+    const before = await this.findOne(id);
+    const after = await this.prisma.contact.update({
       where: { id },
       data,
       include: { account: true },
     });
+    await this.tracking.recordUpdate('contact', id, before as never, after as never, userId);
+    return after;
   }
 
-  async remove(id: string) {
+  async remove(id: string, userId?: string) {
     await this.findOne(id);
-    return this.prisma.contact.update({
+    const removed = await this.prisma.contact.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
+    await this.tracking.recordDelete('contact', id, userId);
+    return removed;
   }
 }

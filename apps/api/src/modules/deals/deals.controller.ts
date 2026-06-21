@@ -46,8 +46,8 @@ export class DealsController {
   }
 
   @Post()
-  create(@Body() body: Record<string, unknown>) {
-    return this.dealsService.create(body as never);
+  create(@Body() body: Record<string, unknown>, @Req() req: { user: { id: string } }) {
+    return this.dealsService.create(body as never, req.user.id);
   }
 
   @Patch(':id')

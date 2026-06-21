@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BlueprintsService } from '../blueprints/blueprints.service';
+import { ChangeTrackingService } from '../change-tracking/change-tracking.service';
 import { FieldHistoryService } from '../field-history/field-history.service';
 import { PlaybooksService } from '../playbooks/playbooks.service';
 
@@ -12,6 +13,7 @@ export class DealsService {
     private readonly fieldHistory: FieldHistoryService,
     private readonly blueprints: BlueprintsService,
     private readonly playbooks: PlaybooksService,
+    private readonly tracking: ChangeTrackingService,
   ) {}
 
   findAll(stageId?: string, pipelineId?: string) {
@@ -49,11 +51,13 @@ export class DealsService {
     return deal;
   }
 
-  create(data: Prisma.DealCreateInput) {
-    return this.prisma.deal.create({
+  async create(data: Prisma.DealCreateInput, createdById?: string) {
+    const deal = await this.prisma.deal.create({
       data,
       include: { account: true, pipelineStage: true, owner: true },
     });
+    await this.tracking.recordCreate('deal', deal.id, deal as never, createdById);
+    return deal;
   }
 
   async update(
@@ -95,24 +99,8 @@ export class DealsService {
       });
     }
 
-    await this.fieldHistory.recordDealChanges(
-      id,
-      {
-        name: existing.name,
-        amount: existing.amount,
-        probability: existing.probability,
-        forecastCategory: existing.forecastCategory,
-        expectedCloseDate: existing.expectedCloseDate,
-      },
-      {
-        name: updated.name,
-        amount: updated.amount,
-        probability: updated.probability,
-        forecastCategory: updated.forecastCategory,
-        expectedCloseDate: updated.expectedCloseDate,
-      },
-      changedById,
-    );
+    // Records both the field-level timeline and a reversible audit entry.
+    await this.tracking.recordUpdate('deal', id, existing as never, updated as never, changedById);
 
     return updated;
   }
