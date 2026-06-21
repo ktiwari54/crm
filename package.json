@@ -1,0 +1,29 @@
+{
+  "name": "crm",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run start:dev -w @crm/api",
+    "dev:web": "npm run dev -w @crm/web",
+    "build:api": "npm run build -w @crm/api",
+    "build:web": "npm run build -w @crm/web",
+    "db:generate": "npm run prisma:generate -w @crm/api",
+    "db:migrate": "npm run prisma:migrate -w @crm/api",
+    "db:seed": "npm run prisma:seed -w @crm/api",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "test:api": "npm run test -w @crm/api",
+    "test": "npm run test -w @crm/api",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.0"
+  }
+}

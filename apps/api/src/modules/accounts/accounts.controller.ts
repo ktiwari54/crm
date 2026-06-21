@@ -1,0 +1,44 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { AccountsService } from './accounts.service';
+
+@Controller('accounts')
+@UseGuards(JwtAuthGuard)
+export class AccountsController {
+  constructor(private readonly accountsService: AccountsService) {}
+
+  @Get()
+  findAll(@Query('search') search?: string) {
+    return this.accountsService.findAll(search);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.accountsService.findOne(id);
+  }
+
+  @Post()
+  create(@Body() body: Record<string, unknown>) {
+    return this.accountsService.create(body as never);
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() body: Record<string, unknown>) {
+    return this.accountsService.update(id, body as never);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.accountsService.remove(id);
+  }
+}

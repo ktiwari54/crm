@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+**/.env
+!**/.env.example
+
+# Build output
+dist/
+**/dist/
+.next/
+**/.next/
+out/
+**/out/
+apps/api/generated/
+
+# Prisma build artifacts
+apps/api/prisma.config.js
+apps/api/prisma.config.d.ts
+apps/api/prisma.config.js.map
+*.tsbuildinfo
+
+# Test / coverage
+coverage/
+**/coverage/
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
