@@ -33,7 +33,8 @@ JWT_SECRET=<a-long-random-secret>
 # STRIPE_WEBHOOK_SECRET=whsec_...
 EOF
 
-# Log in to GHCR if the packages are private
+# Log in to GHCR — the packages are private, so this is required.
+# Use a Personal Access Token (classic) with the read:packages scope.
 echo <GITHUB_PAT> | docker login ghcr.io -u <github-user> --password-stdin
 
 docker compose -f docker-compose.deploy.yml pull
