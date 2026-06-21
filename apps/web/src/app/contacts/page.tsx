@@ -1,0 +1,198 @@
+'use client';
+
+import { FormEvent, useState } from 'react';
+import { apiFetch } from '@/lib/api';
+import { connectId } from '@/lib/prisma-connect';
+import { useFetch } from '@/hooks/useFetch';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Modal } from '@/components/ui/Modal';
+import { Badge } from '@/components/ui/Badge';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { EmptyState } from '@/components/ui/EmptyState';
+import {
+  FormField,
+  inputClass,
+  selectClass,
+  btnPrimary,
+  btnSecondary,
+} from '@/components/ui/FormField';
+
+type Contact = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  phone: string | null;
+  title: string | null;
+  isPrimary: boolean;
+  account: { id: string; name: string };
+};
+
+type Account = { id: string; name: string };
+
+export default function ContactsPage() {
+  const [showModal, setShowModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    title: '',
+    accountId: '',
+  });
+
+  const { data, loading, error, reload } = useFetch<Contact[]>('/contacts');
+  const accounts = useFetch<Account[]>('/accounts');
+
+  async function clickToCall(contact: Contact) {
+    if (!contact.phone) return;
+    try {
+      const result = await apiFetch<{ telUrl: string; logged: boolean }>('/cti/dial', {
+        method: 'POST',
+        body: JSON.stringify({
+          phone: contact.phone,
+          contactId: contact.id,
+          subject: `Call ${contact.firstName} ${contact.lastName}`,
+        }),
+      });
+      if (result.logged) {
+        window.open(result.telUrl, '_self');
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Call failed');
+    }
+  }
+
+  async function handleCreate(e: FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await apiFetch('/contacts', {
+        method: 'POST',
+        body: JSON.stringify({
+          firstName: form.firstName,
+          lastName: form.lastName,
+          email: form.email || undefined,
+          phone: form.phone || undefined,
+          title: form.title || undefined,
+          account: connectId(form.accountId),
+        }),
+      });
+      setShowModal(false);
+      setForm({ firstName: '', lastName: '', email: '', phone: '', title: '', accountId: '' });
+      await reload();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to create contact');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="p-8">
+      <PageHeader
+        title="Contacts"
+        description="Multi-stakeholder mapping across accounts and deals"
+        action={
+          <button type="button" className={btnPrimary} onClick={() => setShowModal(true)}>
+            New Contact
+          </button>
+        }
+      />
+
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+        {loading ? <LoadingState /> : null}
+        {error ? <ErrorState message={error} onRetry={reload} /> : null}
+        {!loading && !error && data?.length === 0 ? (
+          <EmptyState title="No contacts yet" />
+        ) : null}
+        {!loading && !error && data && data.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="px-6 py-3">Name</th>
+                  <th className="px-6 py-3">Account</th>
+                  <th className="px-6 py-3">Title</th>
+                  <th className="px-6 py-3">Email</th>
+                  <th className="px-6 py-3">Phone</th>
+                  <th className="px-6 py-3">CTI</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {data.map((c) => (
+                  <tr key={c.id} className="hover:bg-slate-50">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-slate-900">
+                          {c.firstName} {c.lastName}
+                        </span>
+                        {c.isPrimary ? <Badge variant="blue">Primary</Badge> : null}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-slate-600">{c.account.name}</td>
+                    <td className="px-6 py-4 text-slate-600">{c.title ?? '—'}</td>
+                    <td className="px-6 py-4 text-slate-600">{c.email ?? '—'}</td>
+                    <td className="px-6 py-4 text-slate-600">{c.phone ?? '—'}</td>
+                    <td className="px-6 py-4">
+                      {c.phone ? (
+                        <button
+                          type="button"
+                          className="text-sm font-medium text-green-600 hover:text-green-700"
+                          onClick={() => clickToCall(c)}
+                        >
+                          📞 Call
+                        </button>
+                      ) : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+      </div>
+
+      <Modal open={showModal} title="New Contact" onClose={() => setShowModal(false)}>
+        <form onSubmit={handleCreate} className="space-y-4">
+          <FormField label="Account">
+            <select
+              required
+              value={form.accountId}
+              onChange={(e) => setForm({ ...form, accountId: e.target.value })}
+              className={selectClass}
+            >
+              <option value="">Select account...</option>
+              {accounts.data?.map((a) => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+          </FormField>
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="First Name">
+              <input required value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} className={inputClass} />
+            </FormField>
+            <FormField label="Last Name">
+              <input required value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} className={inputClass} />
+            </FormField>
+          </div>
+          <FormField label="Email">
+            <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={inputClass} />
+          </FormField>
+          <FormField label="Phone">
+            <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className={inputClass} />
+          </FormField>
+          <FormField label="Title">
+            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputClass} />
+          </FormField>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" className={btnSecondary} onClick={() => setShowModal(false)}>Cancel</button>
+            <button type="submit" className={btnPrimary} disabled={saving}>{saving ? 'Creating...' : 'Create Contact'}</button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+}
