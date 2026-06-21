@@ -1,0 +1,78 @@
+# Production deploy: runs the published GHCR images behind Caddy (HTTPS).
+# On the server:
+#   1) create a .env file next to this (see DEPLOY.md)
+#   2) docker login ghcr.io        # if packages are private
+#   3) docker compose -f docker-compose.deploy.yml pull
+#   4) docker compose -f docker-compose.deploy.yml up -d
+#   5) docker compose -f docker-compose.deploy.yml run --rm migrate   # first run
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: crm
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: crm
+    volumes:
+      - crm_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U crm -d crm']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    image: ghcr.io/ktiwari54/crm/api:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://crm:${POSTGRES_PASSWORD}@postgres:5432/crm?schema=public
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      PORT: 4000
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+    expose:
+      - '4000'
+
+  web:
+    image: ghcr.io/ktiwari54/crm/web:latest
+    restart: unless-stopped
+    depends_on:
+      - api
+    expose:
+      - '3000'
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+      - api
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN to your hostname}
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+  # One-shot schema push + seed. Run once after the first `up`.
+  migrate:
+    image: ghcr.io/ktiwari54/crm/api:latest
+    profiles: ['tools']
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://crm:${POSTGRES_PASSWORD}@postgres:5432/crm?schema=public
+    working_dir: /app/apps/api
+    command: sh -c "npx prisma db push && npx tsx prisma/seed.ts"
+
+volumes:
+  crm_pg_data:
+  caddy_data:
+  caddy_config:

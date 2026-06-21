@@ -53,9 +53,36 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # Web image talks to the API same-origin via Caddy (/api/v1), so no
+          # domain is baked in. Override with the NEXT_PUBLIC_API_URL repo var.
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL || '/api/v1' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # Deployment step is environment-specific. Once a host is chosen (Fly/Render/
-  # ECS/K8s/VPS), add a job here that pulls the pushed image and runs
-  # `prisma migrate deploy` against the production DATABASE_URL before cutover.
+  # SSH deploy to a VPS running docker-compose.deploy.yml.
+  # Gated on the DEPLOY_ENABLED repo variable so CD stays green until you opt in.
+  # Required to enable (Settings → Secrets and variables → Actions):
+  #   Variable: DEPLOY_ENABLED = true
+  #   Secrets:  DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY, DEPLOY_PATH
+  # The server must have this repo cloned at DEPLOY_PATH with a .env file.
+  deploy:
+    name: Deploy to server
+    needs: images
+    if: ${{ github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -e
+            cd ${{ secrets.DEPLOY_PATH }}
+            git pull --ff-only
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            docker compose -f docker-compose.deploy.yml pull
+            docker compose -f docker-compose.deploy.yml up -d
+            docker compose -f docker-compose.deploy.yml run --rm migrate

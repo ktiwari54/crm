@@ -1,0 +1,15 @@
+# Caddy auto-provisions HTTPS (Let's Encrypt) for $DOMAIN.
+# Same-origin routing: /api/* → API container, everything else → web container.
+# Because the API and web share an origin here, the web image is built with
+# NEXT_PUBLIC_API_URL=/api/v1 (relative), so no domain is baked into the image.
+{$DOMAIN} {
+	encode gzip
+
+	handle /api/* {
+		reverse_proxy api:4000
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+}
