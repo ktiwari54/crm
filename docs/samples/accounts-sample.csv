@@ -1,0 +1,4 @@
+name,accountType,industry,country,email,phone,website,vatNumber,gstNumber,tradeLicenseNumber,registrationNumber,paymentTerms
+Acme Corp,customer,Electronics,AE,info@acme.com,+97142223333,https://acme.com,VAT123456,GST7890,TL-2024-001,REG-55512,Net 30
+Globex LLC,prospect,Distribution,US,sales@globex.com,+12125550000,https://globex.com,,,,REG-99001,Net 45
+Initech FZE,customer,Manufacturing,AE,hello@initech.ae,+97143334444,https://initech.ae,VAT778899,,TL-2023-987,,Net 60

@@ -10,6 +10,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { parseCsv } from '../../common/csv';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { ContactsService } from './contacts.service';
 
@@ -33,6 +34,12 @@ export class ContactsController {
   @Post()
   create(@Body() body: Record<string, unknown>, @Req() req: AuthReq) {
     return this.contactsService.create(body as never, req.user.id);
+  }
+
+  @Post('import')
+  import(@Body() body: { csv?: string; rows?: Record<string, string>[] }, @Req() req: AuthReq) {
+    const rows = body.rows ?? (body.csv ? parseCsv(body.csv) : []);
+    return this.contactsService.importRows(rows, req.user.id);
   }
 
   @Patch(':id')

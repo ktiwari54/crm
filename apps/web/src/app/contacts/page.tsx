@@ -13,6 +13,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { HistoryDrawer } from '@/components/HistoryDrawer';
 import { ActivitiesPanel } from '@/components/ActivitiesPanel';
 import { DocumentsPanel } from '@/components/DocumentsPanel';
+import { CsvImportModal, SAMPLE_CONTACTS_CSV } from '@/components/CsvImportModal';
 import {
   FormField,
   inputClass,
@@ -42,6 +43,7 @@ export default function ContactsPage() {
   const [edit, setEdit] = useState<Contact | null>(null);
   const [activities, setActivities] = useState<Contact | null>(null);
   const [docs, setDocs] = useState<Contact | null>(null);
+  const [showImport, setShowImport] = useState(false);
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -104,9 +106,10 @@ export default function ContactsPage() {
         title="Contacts"
         description="Multi-stakeholder mapping across accounts and deals"
         action={
-          <button type="button" className={btnPrimary} onClick={() => setShowModal(true)}>
-            New Contact
-          </button>
+          <div className="flex gap-2">
+            <button type="button" className={btnSecondary} onClick={() => setShowImport(true)}>Import CSV</button>
+            <button type="button" className={btnPrimary} onClick={() => setShowModal(true)}>New Contact</button>
+          </div>
         }
       />
 
@@ -262,6 +265,17 @@ export default function ContactsPage() {
           entityId={docs.id}
           title={`${docs.firstName} ${docs.lastName}`}
           onClose={() => setDocs(null)}
+        />
+      ) : null}
+      {showImport ? (
+        <CsvImportModal
+          endpoint="/contacts/import"
+          title="Import Contacts from CSV"
+          hint="Header row required. Columns: firstName (required), lastName (required), accountName (must match an existing account), email, phone, mobile, title, country."
+          sampleCsv={SAMPLE_CONTACTS_CSV}
+          sampleName="contacts-sample.csv"
+          onClose={() => setShowImport(false)}
+          onDone={() => { setShowImport(false); void reload(); }}
         />
       ) : null}
     </div>

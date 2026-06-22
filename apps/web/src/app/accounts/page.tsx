@@ -16,6 +16,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { HistoryDrawer } from '@/components/HistoryDrawer';
 import { ActivitiesPanel } from '@/components/ActivitiesPanel';
 import { DocumentsPanel } from '@/components/DocumentsPanel';
+import { CsvImportModal, SAMPLE_ACCOUNTS_CSV } from '@/components/CsvImportModal';
 import {
   FormField,
   inputClass,
@@ -54,6 +55,7 @@ export default function AccountsPage() {
   const [edit, setEdit] = useState<Account | null>(null);
   const [activities, setActivities] = useState<Account | null>(null);
   const [docs, setDocs] = useState<Account | null>(null);
+  const [showImport, setShowImport] = useState(false);
   const [form, setForm] = useState({
     name: '',
     accountType: 'customer',
@@ -103,9 +105,10 @@ export default function AccountsPage() {
         title="Accounts"
         description="Customer 360° — hierarchies, territories, and health scoring"
         action={
-          <button type="button" className={btnPrimary} onClick={() => setShowModal(true)}>
-            New Account
-          </button>
+          <div className="flex gap-2">
+            <button type="button" className={btnSecondary} onClick={() => setShowImport(true)}>Import CSV</button>
+            <button type="button" className={btnPrimary} onClick={() => setShowModal(true)}>New Account</button>
+          </div>
         }
       />
 
@@ -289,6 +292,17 @@ export default function AccountsPage() {
       {edit ? <EditAccountModal account={edit} onClose={() => setEdit(null)} onDone={() => { setEdit(null); void reload(); }} /> : null}
       {activities ? <ActivitiesPanel relatedType="account" relatedId={activities.id} title={activities.name} onClose={() => setActivities(null)} /> : null}
       {docs ? <DocumentsPanel entityType="account" entityId={docs.id} title={docs.name} onClose={() => setDocs(null)} /> : null}
+      {showImport ? (
+        <CsvImportModal
+          endpoint="/accounts/import"
+          title="Import Accounts from CSV"
+          hint="Header row required. Columns: name (required), accountType, industry, country, email, phone, website, vatNumber, gstNumber, tradeLicenseNumber, registrationNumber, paymentTerms."
+          sampleCsv={SAMPLE_ACCOUNTS_CSV}
+          sampleName="accounts-sample.csv"
+          onClose={() => setShowImport(false)}
+          onDone={() => { setShowImport(false); void reload(); }}
+        />
+      ) : null}
     </div>
   );
 }

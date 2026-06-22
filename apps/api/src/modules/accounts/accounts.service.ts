@@ -59,6 +59,43 @@ export class AccountsService {
     return after;
   }
 
+  /** Bulk-create accounts from parsed CSV rows. */
+  async importRows(rows: Record<string, string>[], userId?: string) {
+    const created: string[] = [];
+    const errors: { row: number; message: string }[] = [];
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      const name = r.name || r.accountName || r['Account Name'] || r.company || r['Company Name'];
+      if (!name) {
+        errors.push({ row: i + 1, message: 'missing name' });
+        continue;
+      }
+      try {
+        await this.create(
+          {
+            name,
+            accountType: (r.accountType as never) || 'customer',
+            industry: r.industry || undefined,
+            country: r.country || undefined,
+            email: r.email || undefined,
+            phone: r.phone || undefined,
+            website: r.website || undefined,
+            vatNumber: r.vatNumber || r.vat || undefined,
+            gstNumber: r.gstNumber || r.gst || undefined,
+            tradeLicenseNumber: r.tradeLicenseNumber || r.tradeLicense || undefined,
+            registrationNumber: r.registrationNumber || undefined,
+            paymentTerms: r.paymentTerms || undefined,
+          } as Prisma.AccountCreateInput,
+          userId,
+        );
+        created.push(name);
+      } catch (e) {
+        errors.push({ row: i + 1, message: e instanceof Error ? e.message : 'failed' });
+      }
+    }
+    return { imported: created.length, failed: errors.length, errors };
+  }
+
   async remove(id: string, userId?: string) {
     await this.findOne(id);
     const removed = await this.prisma.account.update({

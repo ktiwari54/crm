@@ -15,6 +15,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { HistoryDrawer } from '@/components/HistoryDrawer';
 import { ActivitiesPanel } from '@/components/ActivitiesPanel';
 import { DocumentsPanel } from '@/components/DocumentsPanel';
+import { CsvImportModal, SAMPLE_LEADS_CSV } from '@/components/CsvImportModal';
 import { FormField, inputClass, selectClass, btnPrimary, btnSecondary } from '@/components/ui/FormField';
 
 type Lead = {
@@ -191,7 +192,17 @@ export default function LeadsPage() {
       </Modal>
 
       {edit ? <EditModal lead={edit} onClose={() => setEdit(null)} onDone={() => { setEdit(null); void reload(); }} /> : null}
-      {showImport ? <ImportModal onClose={() => setShowImport(false)} onDone={() => { setShowImport(false); void reload(); }} /> : null}
+      {showImport ? (
+        <CsvImportModal
+          endpoint="/leads/import"
+          title="Import Leads from CSV"
+          hint="Header row required. Columns: companyName (required), firstName, lastName, email, phone, title, source."
+          sampleCsv={SAMPLE_LEADS_CSV}
+          sampleName="leads-sample.csv"
+          onClose={() => setShowImport(false)}
+          onDone={() => { setShowImport(false); void reload(); }}
+        />
+      ) : null}
       {convert ? <ConvertModal lead={convert} onClose={() => setConvert(null)} onDone={() => { setConvert(null); void reload(); }} /> : null}
       {history ? <HistoryDrawer entityType="lead" entityId={history.id} title={history.companyName} onClose={() => setHistory(null)} onReverted={() => void reload()} /> : null}
       {activities ? <ActivitiesPanel relatedType="lead" relatedId={activities.id} title={activities.companyName} onClose={() => setActivities(null)} /> : null}
@@ -262,54 +273,6 @@ function EditModal({ lead, onClose, onDone }: { lead: Lead; onClose: () => void;
         <div className="flex justify-end gap-2">
           <button type="button" className={btnSecondary} onClick={onClose}>Cancel</button>
           <button type="button" className={btnPrimary} onClick={save} disabled={busy || !f.companyName}>{busy ? 'Saving…' : 'Save'}</button>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
-function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
-  const [csv, setCsv] = useState('companyName,firstName,lastName,email,phone,source\n');
-  const [result, setResult] = useState<{ imported: number; failed: number; errors: { row: number; message: string }[] } | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function run() {
-    setBusy(true);
-    try {
-      const res = await apiFetch<typeof result>('/leads/import', { method: 'POST', body: JSON.stringify({ csv }) });
-      setResult(res);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Import failed');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) setCsv(await file.text());
-  }
-
-  return (
-    <Modal open title="Import leads from CSV" onClose={onClose}>
-      <div className="space-y-3">
-        <p className="text-xs text-slate-500">First row must be a header. Recognized columns: companyName, firstName, lastName, email, phone, title, source.</p>
-        <input type="file" accept=".csv,text/csv" onChange={onFile} className="text-sm" />
-        <textarea value={csv} onChange={(e) => setCsv(e.target.value)} rows={8} className={`${inputClass} font-mono text-xs`} />
-        {result ? (
-          <div className="rounded-lg bg-slate-50 p-3 text-sm">
-            <p className="text-emerald-700">Imported {result.imported}</p>
-            {result.failed > 0 ? (
-              <div className="text-red-600">
-                <p>Failed {result.failed}:</p>
-                {result.errors.map((er) => <p key={er.row} className="text-xs">row {er.row}: {er.message}</p>)}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-        <div className="flex justify-end gap-2">
-          <button type="button" className={btnSecondary} onClick={result ? onDone : onClose}>{result ? 'Done' : 'Cancel'}</button>
-          <button type="button" className={btnPrimary} onClick={run} disabled={busy}>{busy ? 'Importing…' : 'Import'}</button>
         </div>
       </div>
     </Modal>
