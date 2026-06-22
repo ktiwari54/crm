@@ -31,6 +31,9 @@ test-results/
 playwright-report/
 playwright/.cache/
 
+# Local file-storage fallback (runtime uploads)
+apps/api/uploads/
+
 # Logs
 *.log
 npm-debug.log*
