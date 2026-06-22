@@ -1,4 +1,4 @@
-Record Id,Product Name,Part Number,Condition,Created Time,Product Category
-zcrm_0001,Apple iPhone 16 Pro Max | 256 GB | Natural Titanium,5YW63LL/A,As Is Plus,2025-08-05 12:39:33,iPhone
-zcrm_0002,MacBook Air 13 | M3 | 512GB | Starlight,MXCU3HN/A,NEW,2025-10-31 13:37:53,MacBook
-zcrm_0003,Nintendo Switch 2 + Mario Kart,BEE5KB6LA,NEW,2025-11-07 17:44:41,Other Devices
+Record Id,Product Name,Part Number,Condition,Product Category,List Price,Cost Price,Stock
+zcrm_0001,Apple iPhone 16 Pro Max | 256 GB | Natural Titanium,5YW63LL/A,As Is Plus,iPhone,1199,950,12
+zcrm_0002,MacBook Air 13 | M3 | 512GB | Starlight,MXCU3HN/A,NEW,MacBook,1499,1200,5
+zcrm_0003,Nintendo Switch 2 + Mario Kart,BEE5KB6LA,NEW,Other Devices,499,420,30

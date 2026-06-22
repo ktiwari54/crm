@@ -122,7 +122,7 @@ export default function ProductsPage() {
         <CsvImportModal
           endpoint="/products/import"
           title="Import Products from CSV"
-          hint="Header row required. Columns: Product Name (required), Part Number, Condition, Product Category, Record Id. Re-importing the same Record Id updates the product."
+          hint="Header row required. Columns: Product Name (required), Part Number, Condition, Product Category, Record Id, and optionally List Price, Cost Price, Stock. Re-importing the same Record Id updates the product."
           sampleCsv={SAMPLE_PRODUCTS_CSV}
           sampleName="products-sample.csv"
           onClose={() => setShowImport(false)}

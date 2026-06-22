@@ -101,9 +101,9 @@ export const SAMPLE_ACCOUNTS_CSV =
   'Globex LLC,prospect,Distribution,US,sales@globex.com,+12125550000,https://globex.com,,,,Net 45\n';
 
 export const SAMPLE_PRODUCTS_CSV =
-  'Record Id,Product Name,Part Number,Condition,Created Time,Product Category\n' +
-  'zcrm_0001,Apple iPhone 16 Pro Max | 256 GB | Natural Titanium,5YW63LL/A,As Is Plus,2025-08-05 12:39:33,iPhone\n' +
-  'zcrm_0002,MacBook Air 13 | M3 | 512GB | Starlight,MXCU3HN/A,NEW,2025-10-31 13:37:53,MacBook\n';
+  'Record Id,Product Name,Part Number,Condition,Product Category,List Price,Cost Price,Stock\n' +
+  'zcrm_0001,Apple iPhone 16 Pro Max | 256 GB | Natural Titanium,5YW63LL/A,As Is Plus,iPhone,1199,950,12\n' +
+  'zcrm_0002,MacBook Air 13 | M3 | 512GB | Starlight,MXCU3HN/A,NEW,MacBook,1499,1200,5\n';
 
 export const SAMPLE_CONTACTS_CSV =
   'firstName,lastName,accountName,email,phone,mobile,title,country\n' +

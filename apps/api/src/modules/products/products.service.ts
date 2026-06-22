@@ -79,6 +79,15 @@ export class ProductsService {
       const categoryName = pick(r, 'Product Category', 'category', 'Category');
       const createdTime = pick(r, 'Created Time', 'createdTime');
 
+      const num = (s?: string) => {
+        if (!s) return undefined;
+        const n = Number(s.replace(/[^0-9.\-]/g, ''));
+        return Number.isFinite(n) ? n : undefined;
+      };
+      const listPrice = num(pick(r, 'List Price', 'listPrice', 'Price', 'price', 'Unit Price'));
+      const costPrice = num(pick(r, 'Cost Price', 'costPrice', 'Cost', 'cost'));
+      const stock = num(pick(r, 'Stock', 'stock', 'Quantity', 'quantity', 'qty', 'On Hand', 'onHand'));
+
       // Resolve/create category (skip blank or date-like junk from shifted columns)
       let categoryId: string | undefined;
       if (categoryName && !/^\d{4}-\d{2}-\d{2}/.test(categoryName)) {
@@ -100,24 +109,42 @@ export class ProductsService {
           ? await this.prisma.product.findUnique({ where: { erpExternalId: recordId } })
           : null;
 
+        let productId: string;
         if (existing) {
           await this.prisma.product.update({
             where: { id: existing.id },
-            data: { name, manufacturerPartNumber: partNumber, condition, categoryId, attributes },
+            data: {
+              name,
+              manufacturerPartNumber: partNumber,
+              condition,
+              categoryId,
+              attributes,
+              ...(listPrice != null ? { listPrice } : {}),
+              ...(costPrice != null ? { costPrice } : {}),
+            },
           });
+          productId = existing.id;
           updated++;
         } else {
-          await this.createWithUniqueSku({
+          const created = await this.createWithUniqueSku({
             erpExternalId: recordId,
             name,
             manufacturerPartNumber: partNumber,
             condition,
             categoryId,
             attributes,
+            listPrice,
+            costPrice,
             baseSku: partNumber || recordId || `SKU-${i + 1}`,
             fallback: recordId || String(i + 1),
           });
+          productId = created.id;
           imported++;
+        }
+
+        // Optional initial stock -> primary warehouse inventory level
+        if (stock != null) {
+          await this.setPrimaryStock(productId, stock);
         }
       } catch (e) {
         errors.push({ row: i + 1, message: e instanceof Error ? e.message : 'failed' });
@@ -135,6 +162,8 @@ export class ProductsService {
     condition?: string;
     categoryId?: string;
     attributes: object;
+    listPrice?: number;
+    costPrice?: number;
     baseSku: string;
     fallback: string;
   }) {
@@ -145,6 +174,8 @@ export class ProductsService {
       condition: input.condition,
       categoryId: input.categoryId,
       attributes: input.attributes as never,
+      ...(input.listPrice != null ? { listPrice: input.listPrice } : {}),
+      ...(input.costPrice != null ? { costPrice: input.costPrice } : {}),
     };
     const candidates = [input.baseSku, `${input.baseSku}-${input.fallback.slice(-6)}`, `${input.baseSku}-${Date.now()}`];
     for (const sku of candidates) {
@@ -157,6 +188,19 @@ export class ProductsService {
       }
     }
     throw new Error(`Could not assign a unique SKU for "${input.name}"`);
+  }
+
+  /** Set on-hand stock for a product at the primary (or first) warehouse. */
+  private async setPrimaryStock(productId: string, onHand: number) {
+    const warehouse =
+      (await this.prisma.warehouse.findFirst({ where: { isPrimary: true } })) ??
+      (await this.prisma.warehouse.findFirst({ orderBy: { createdAt: 'asc' } }));
+    if (!warehouse) return; // no warehouse configured; skip stock
+    await this.prisma.inventoryLevel.upsert({
+      where: { productId_warehouseId: { productId, warehouseId: warehouse.id } },
+      create: { productId, warehouseId: warehouse.id, onHand, atp: onHand, lastSyncedAt: new Date() },
+      update: { onHand, atp: onHand, lastSyncedAt: new Date() },
+    });
   }
 
   getInventory(id: string) {
