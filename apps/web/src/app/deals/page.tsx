@@ -8,6 +8,8 @@ import { useFetch } from '@/hooks/useFetch';
 import { formatCurrency, formatDateTime, fullName } from '@/lib/format';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Modal } from '@/components/ui/Modal';
+import { HistoryDrawer } from '@/components/HistoryDrawer';
+import { ActivitiesPanel } from '@/components/ActivitiesPanel';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -98,9 +100,12 @@ export default function DealsPage() {
   const [moving, setMoving] = useState<string | null>(null);
   const [teamUserId, setTeamUserId] = useState('');
   const [chatterBody, setChatterBody] = useState('');
+  const [history, setHistory] = useState<{ id: string; name: string } | null>(null);
+  const [activities, setActivities] = useState<{ id: string; name: string } | null>(null);
   const [form, setForm] = useState({
     name: '',
     accountId: '',
+    contactId: '',
     stageId: '',
     amount: '',
     expectedCloseDate: '',
@@ -121,6 +126,10 @@ export default function DealsPage() {
   );
   const scoreMap = Object.fromEntries((dealScores.data ?? []).map((s) => [s.dealId, s]));
   const accounts = useFetch<Account[]>('/accounts');
+  const dealContacts = useFetch<{ id: string; firstName: string; lastName: string }[]>(
+    form.accountId ? `/contacts?accountId=${form.accountId}` : null,
+    [form.accountId],
+  );
   const users = useFetch<User[]>('/users');
   const inspection = useFetch<Inspection>(
     inspectId ? `/deals/${inspectId}/inspection` : null,
@@ -154,7 +163,7 @@ export default function DealsPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await apiFetch('/deals', {
+      const deal = await apiFetch<{ id: string }>('/deals', {
         method: 'POST',
         body: JSON.stringify({
           name: form.name,
@@ -165,8 +174,14 @@ export default function DealsPage() {
           owner: connectId(user?.id),
         }),
       });
+      if (form.contactId) {
+        await apiFetch(`/deals/${deal.id}/contacts`, {
+          method: 'POST',
+          body: JSON.stringify({ contactId: form.contactId, isPrimary: true }),
+        });
+      }
       setShowModal(false);
-      setForm({ name: '', accountId: '', stageId: '', amount: '', expectedCloseDate: '' });
+      setForm({ name: '', accountId: '', contactId: '', stageId: '', amount: '', expectedCloseDate: '' });
       await deals.reload();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to create deal');
@@ -336,7 +351,25 @@ export default function DealsPage() {
         {inspection.data ? (
           <div className="max-h-[70vh] space-y-6 overflow-y-auto">
             <div>
-              <h3 className="font-semibold text-slate-900">{inspection.data.name}</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-slate-900">{inspection.data.name}</h3>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-slate-500 hover:underline"
+                    onClick={() => inspectId && setActivities({ id: inspectId, name: inspection.data!.name })}
+                  >
+                    Activities
+                  </button>
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-slate-500 hover:underline"
+                    onClick={() => inspectId && setHistory({ id: inspectId, name: inspection.data!.name })}
+                  >
+                    History / Undo
+                  </button>
+                </div>
+              </div>
               <FormField label="Forecast Category">
                 <select
                   value={inspection.data.forecastCategory ?? 'pipeline'}
@@ -475,9 +508,15 @@ export default function DealsPage() {
         <form onSubmit={handleCreate} className="space-y-4">
           <FormField label="Deal Name"><input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputClass} /></FormField>
           <FormField label="Account">
-            <select required value={form.accountId} onChange={(e) => setForm({ ...form, accountId: e.target.value })} className={selectClass}>
+            <select required value={form.accountId} onChange={(e) => setForm({ ...form, accountId: e.target.value, contactId: '' })} className={selectClass}>
               <option value="">Select account...</option>
               {accounts.data?.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          </FormField>
+          <FormField label="Primary Contact">
+            <select value={form.contactId} onChange={(e) => setForm({ ...form, contactId: e.target.value })} className={selectClass} disabled={!form.accountId}>
+              <option value="">{form.accountId ? 'Select contact (optional)...' : 'Pick an account first'}</option>
+              {dealContacts.data?.map((c) => <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>)}
             </select>
           </FormField>
           <FormField label="Stage">
@@ -493,6 +532,20 @@ export default function DealsPage() {
           </div>
         </form>
       </Modal>
+
+      {history ? (
+        <HistoryDrawer
+          entityType="deal"
+          entityId={history.id}
+          title={history.name}
+          onClose={() => setHistory(null)}
+          onReverted={() => { void deals.reload(); if (inspectId) { void inspection.reload(); void fieldHistory.reload(); } }}
+        />
+      ) : null}
+
+      {activities ? (
+        <ActivitiesPanel relatedType="deal" relatedId={activities.id} title={activities.name} onClose={() => setActivities(null)} />
+      ) : null}
     </div>
   );
 }

@@ -7,6 +7,9 @@ const REPORT_KEYS = [
   'rep-activity',
   'account-list',
   'inventory-low-stock',
+  'lead-source',
+  'lead-funnel',
+  'revenue-by-month',
 ] as const;
 
 @Injectable()
@@ -29,6 +32,12 @@ export class ReportsService {
         return this.accountList();
       case 'inventory-low-stock':
         return this.inventoryLowStock();
+      case 'lead-source':
+        return this.leadSource();
+      case 'lead-funnel':
+        return this.leadFunnel();
+      case 'revenue-by-month':
+        return this.revenueByMonth();
       default:
         throw new NotFoundException(`Report '${reportKey}' not found`);
     }
@@ -121,6 +130,65 @@ export class ReportsService {
       orderBy: { name: 'asc' },
       take: 100,
     });
+  }
+
+  /** Lead count + conversion rate grouped by source. */
+  private async leadSource() {
+    const leads = await this.prisma.lead.groupBy({
+      by: ['source', 'status'],
+      where: { deletedAt: null },
+      _count: true,
+    });
+    const sources = new Map<string, { source: string; total: number; converted: number }>();
+    for (const row of leads) {
+      const s = sources.get(row.source) ?? { source: row.source, total: 0, converted: 0 };
+      s.total += row._count;
+      if (row.status === 'converted') s.converted += row._count;
+      sources.set(row.source, s);
+    }
+    return [...sources.values()].map((s) => ({
+      ...s,
+      conversionRate: s.total ? Math.round((s.converted / s.total) * 100) : 0,
+    }));
+  }
+
+  /** Lead lifecycle funnel: counts per status. */
+  private async leadFunnel() {
+    const rows = await this.prisma.lead.groupBy({
+      by: ['status'],
+      where: { deletedAt: null },
+      _count: true,
+    });
+    const order = ['new', 'working', 'qualified', 'converted', 'disqualified'];
+    const map = Object.fromEntries(rows.map((r) => [r.status, r._count]));
+    return order.map((status) => ({ status, count: map[status] ?? 0 }));
+  }
+
+  /** Invoiced revenue per month for the last 12 months. */
+  private async revenueByMonth() {
+    const since = new Date();
+    since.setMonth(since.getMonth() - 11);
+    since.setDate(1);
+    const invoices = await this.prisma.invoice.findMany({
+      where: { deletedAt: null, createdAt: { gte: since } },
+      select: { total: true, amountPaid: true, createdAt: true },
+    });
+    const buckets = new Map<string, { month: string; invoiced: number; collected: number }>();
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(since);
+      d.setMonth(since.getMonth() + i);
+      const key = d.toISOString().slice(0, 7);
+      buckets.set(key, { month: key, invoiced: 0, collected: 0 });
+    }
+    for (const inv of invoices) {
+      const key = inv.createdAt.toISOString().slice(0, 7);
+      const b = buckets.get(key);
+      if (b) {
+        b.invoiced += Number(inv.total);
+        b.collected += Number(inv.amountPaid);
+      }
+    }
+    return [...buckets.values()];
   }
 
   private async inventoryLowStock() {

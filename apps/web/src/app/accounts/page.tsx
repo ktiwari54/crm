@@ -14,6 +14,7 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { HistoryDrawer } from '@/components/HistoryDrawer';
+import { ActivitiesPanel } from '@/components/ActivitiesPanel';
 import {
   FormField,
   inputClass,
@@ -50,6 +51,7 @@ export default function AccountsPage() {
   const [saving, setSaving] = useState(false);
   const [history, setHistory] = useState<Account | null>(null);
   const [edit, setEdit] = useState<Account | null>(null);
+  const [activities, setActivities] = useState<Account | null>(null);
   const [form, setForm] = useState({
     name: '',
     accountType: 'customer',
@@ -199,6 +201,13 @@ export default function AccountsPage() {
                       <button
                         type="button"
                         className="ml-3 text-xs text-slate-500 hover:underline"
+                        onClick={() => setActivities(account)}
+                      >
+                        Activities
+                      </button>
+                      <button
+                        type="button"
+                        className="ml-3 text-xs text-slate-500 hover:underline"
                         onClick={() => setHistory(account)}
                       >
                         History
@@ -269,6 +278,7 @@ export default function AccountsPage() {
       ) : null}
 
       {edit ? <EditAccountModal account={edit} onClose={() => setEdit(null)} onDone={() => { setEdit(null); void reload(); }} /> : null}
+      {activities ? <ActivitiesPanel relatedType="account" relatedId={activities.id} title={activities.name} onClose={() => setActivities(null)} /> : null}
     </div>
   );
 }

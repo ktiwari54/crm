@@ -40,6 +40,7 @@ export default function QuotesPage() {
   const { user } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
   const [form, setForm] = useState({ accountId: '', dealId: '' });
 
   const { data, loading, error, reload } = useFetch<Quote[]>('/quotes');
@@ -47,6 +48,30 @@ export default function QuotesPage() {
   const deals = useFetch<Deal[]>('/deals');
 
   const filteredDeals = deals.data?.filter((d) => !form.accountId || d.account.id === form.accountId);
+
+  async function accept(quoteId: string) {
+    setBusy(quoteId);
+    try {
+      await apiFetch(`/quotes/${quoteId}/accept`, { method: 'POST' });
+      await reload();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to accept quote');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function createOrder(quoteId: string) {
+    setBusy(quoteId);
+    try {
+      const order = await apiFetch<{ id: string }>(`/orders/from-quote/${quoteId}`, { method: 'POST' });
+      window.location.href = `/orders?highlight=${order.id}`;
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to create order');
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
@@ -98,6 +123,7 @@ export default function QuotesPage() {
                   <th className="px-6 py-3">Total</th>
                   <th className="px-6 py-3">Margin</th>
                   <th className="px-6 py-3">Valid Until</th>
+                  <th className="px-6 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -123,6 +149,18 @@ export default function QuotesPage() {
                       <td className="px-6 py-4 font-medium text-slate-900">{formatCurrency(quote.total)}</td>
                       <td className="px-6 py-4 text-slate-600">{formatPercent(quote.marginPercent)}</td>
                       <td className="px-6 py-4 text-slate-600">{formatDate(quote.validUntil)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                        {quote.status !== 'accepted' && quote.status !== 'rejected' ? (
+                          <button type="button" className="font-medium text-emerald-600 hover:underline disabled:opacity-50" disabled={busy === quote.id} onClick={() => accept(quote.id)}>
+                            Accept
+                          </button>
+                        ) : null}
+                        {quote.status === 'accepted' ? (
+                          <button type="button" className="font-medium text-blue-600 hover:underline disabled:opacity-50" disabled={busy === quote.id} onClick={() => createOrder(quote.id)}>
+                            Create Order →
+                          </button>
+                        ) : null}
+                      </td>
                     </tr>
                   );
                 })}

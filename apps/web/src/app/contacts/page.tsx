@@ -11,6 +11,7 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { HistoryDrawer } from '@/components/HistoryDrawer';
+import { ActivitiesPanel } from '@/components/ActivitiesPanel';
 import {
   FormField,
   inputClass,
@@ -38,6 +39,7 @@ export default function ContactsPage() {
   const [saving, setSaving] = useState(false);
   const [history, setHistory] = useState<Contact | null>(null);
   const [edit, setEdit] = useState<Contact | null>(null);
+  const [activities, setActivities] = useState<Contact | null>(null);
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -160,6 +162,13 @@ export default function ContactsPage() {
                       <button
                         type="button"
                         className="ml-3 text-sm font-medium text-slate-500 hover:underline"
+                        onClick={() => setActivities(c)}
+                      >
+                        Activities
+                      </button>
+                      <button
+                        type="button"
+                        className="ml-3 text-sm font-medium text-slate-500 hover:underline"
                         onClick={() => setHistory(c)}
                       >
                         History
@@ -228,6 +237,14 @@ export default function ContactsPage() {
           accounts={accounts.data ?? []}
           onClose={() => setEdit(null)}
           onDone={() => { setEdit(null); void reload(); }}
+        />
+      ) : null}
+      {activities ? (
+        <ActivitiesPanel
+          relatedType="contact"
+          relatedId={activities.id}
+          title={`${activities.firstName} ${activities.lastName}`}
+          onClose={() => setActivities(null)}
         />
       ) : null}
     </div>

@@ -9,6 +9,7 @@ const navSections = [
     title: 'Sales',
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: '📊' },
+      { href: '/reports', label: 'Reports', icon: '📈' },
       { href: '/accounts', label: 'Accounts', icon: '🏢' },
       { href: '/contacts', label: 'Contacts', icon: '👤' },
       { href: '/leads', label: 'Leads', icon: '🎯' },

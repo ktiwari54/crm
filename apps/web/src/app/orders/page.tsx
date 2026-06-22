@@ -49,8 +49,10 @@ export default function OrdersPage() {
 
   async function createInvoice(orderId: string) {
     try {
-      await apiFetch(`/invoices/from-order/${orderId}`, { method: 'POST' });
-      alert('Invoice created successfully');
+      const inv = await apiFetch<{ invoiceNumber: string }>(`/invoices/from-order/${orderId}`, { method: 'POST' });
+      if (confirm(`Invoice ${inv.invoiceNumber} created. Go to Invoices?`)) {
+        window.location.href = '/invoices';
+      }
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to create invoice');
     }
