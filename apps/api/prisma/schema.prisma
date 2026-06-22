@@ -816,6 +816,7 @@ model Product {
   name                   String
   description            String?
   manufacturer           String?
+  condition              String?
   categoryId             String?    @map("category_id") @db.Uuid
   unitOfMeasure          String?    @map("unit_of_measure")
   listPrice              Decimal?   @map("list_price") @db.Decimal(18, 4)

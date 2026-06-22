@@ -1,4 +1,5 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { parseCsv } from '../../common/csv';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { ProductsService } from './products.service';
 
@@ -10,6 +11,15 @@ export class ProductsController {
   @Get()
   findAll(@Query('search') search?: string) {
     return this.productsService.findAll(search);
+  }
+
+  @Post('import')
+  import(
+    @Body() body: { csv?: string; rows?: Record<string, string>[] },
+    @Req() req: { user: { id: string } },
+  ) {
+    const rows = body.rows ?? (body.csv ? parseCsv(body.csv) : []);
+    return this.productsService.importRows(rows, req.user.id);
   }
 
   @Get('eol-impact')

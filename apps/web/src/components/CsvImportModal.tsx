@@ -100,6 +100,11 @@ export const SAMPLE_ACCOUNTS_CSV =
   'Acme Corp,customer,Electronics,AE,info@acme.com,+97142223333,https://acme.com,VAT123456,GST7890,TL-2024-001,Net 30\n' +
   'Globex LLC,prospect,Distribution,US,sales@globex.com,+12125550000,https://globex.com,,,,Net 45\n';
 
+export const SAMPLE_PRODUCTS_CSV =
+  'Record Id,Product Name,Part Number,Condition,Created Time,Product Category\n' +
+  'zcrm_0001,Apple iPhone 16 Pro Max | 256 GB | Natural Titanium,5YW63LL/A,As Is Plus,2025-08-05 12:39:33,iPhone\n' +
+  'zcrm_0002,MacBook Air 13 | M3 | 512GB | Starlight,MXCU3HN/A,NEW,2025-10-31 13:37:53,MacBook\n';
+
 export const SAMPLE_CONTACTS_CSV =
   'firstName,lastName,accountName,email,phone,mobile,title,country\n' +
   'Jane,Doe,Acme Corp,jane@acme.com,+97142223333,+971501112222,CTO,AE\n' +
