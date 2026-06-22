@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -28,7 +29,7 @@ export class DocumentsController {
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }))
   upload(
     @UploadedFile() file: Express.Multer.File,
-    @Body() body: { name?: string; accountId?: string; dealId?: string },
+    @Body() body: { name?: string; docType?: string; accountId?: string; dealId?: string; leadId?: string; contactId?: string },
     @Req() req: { user: { id: string } },
   ) {
     return this.documentsService.upload(file, body, req.user.id);
@@ -42,5 +43,10 @@ export class DocumentsController {
   @Post()
   create(@Body() body: Record<string, unknown>) {
     return this.documentsService.create(body as never);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.documentsService.remove(id);
   }
 }

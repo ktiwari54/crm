@@ -12,6 +12,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { HistoryDrawer } from '@/components/HistoryDrawer';
 import { ActivitiesPanel } from '@/components/ActivitiesPanel';
+import { DocumentsPanel } from '@/components/DocumentsPanel';
 import {
   FormField,
   inputClass,
@@ -40,6 +41,7 @@ export default function ContactsPage() {
   const [history, setHistory] = useState<Contact | null>(null);
   const [edit, setEdit] = useState<Contact | null>(null);
   const [activities, setActivities] = useState<Contact | null>(null);
+  const [docs, setDocs] = useState<Contact | null>(null);
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -162,6 +164,13 @@ export default function ContactsPage() {
                       <button
                         type="button"
                         className="ml-3 text-sm font-medium text-slate-500 hover:underline"
+                        onClick={() => setDocs(c)}
+                      >
+                        Docs
+                      </button>
+                      <button
+                        type="button"
+                        className="ml-3 text-sm font-medium text-slate-500 hover:underline"
                         onClick={() => setActivities(c)}
                       >
                         Activities
@@ -245,6 +254,14 @@ export default function ContactsPage() {
           relatedId={activities.id}
           title={`${activities.firstName} ${activities.lastName}`}
           onClose={() => setActivities(null)}
+        />
+      ) : null}
+      {docs ? (
+        <DocumentsPanel
+          entityType="contact"
+          entityId={docs.id}
+          title={`${docs.firstName} ${docs.lastName}`}
+          onClose={() => setDocs(null)}
         />
       ) : null}
     </div>

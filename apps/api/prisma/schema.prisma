@@ -667,6 +667,7 @@ model Contact {
   convertedLeads   Lead[]        @relation("LeadConvertedContact")
   serviceCases     ServiceCase[]
   gdprRequests     GdprRequest[]
+  documents        Document[]
 
   @@map("contacts")
 }
@@ -701,6 +702,7 @@ model Lead {
   convertedContact   Contact?   @relation("LeadConvertedContact", fields: [convertedContactId], references: [id])
   convertedDeal      Deal?      @relation("LeadConvertedDeal", fields: [convertedDealId], references: [id])
   sourceDeals        Deal[]     @relation("DealSourceLead")
+  documents          Document[]
 
   @@map("leads")
 }
@@ -1475,10 +1477,13 @@ model Document {
   mimeType     String?  @map("mime_type")
   fileSize     Int?     @map("file_size")
   version      Int      @default(1)
+  docType      String?  @map("doc_type")
   accountId    String?  @map("account_id") @db.Uuid
   dealId       String?  @map("deal_id") @db.Uuid
   quoteId      String?  @map("quote_id") @db.Uuid
   contractId   String?  @map("contract_id") @db.Uuid
+  leadId       String?  @map("lead_id") @db.Uuid
+  contactId    String?  @map("contact_id") @db.Uuid
   uploadedById String?  @map("uploaded_by_id") @db.Uuid
   createdAt    DateTime @default(now()) @map("created_at")
 
@@ -1486,6 +1491,8 @@ model Document {
   deal       Deal?     @relation(fields: [dealId], references: [id])
   quote      Quote?    @relation(fields: [quoteId], references: [id])
   contract   Contract? @relation(fields: [contractId], references: [id])
+  lead       Lead?     @relation(fields: [leadId], references: [id])
+  contact    Contact?  @relation(fields: [contactId], references: [id])
   uploadedBy User?     @relation(fields: [uploadedById], references: [id])
 
   @@map("documents")

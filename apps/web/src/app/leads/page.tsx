@@ -14,6 +14,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { HistoryDrawer } from '@/components/HistoryDrawer';
 import { ActivitiesPanel } from '@/components/ActivitiesPanel';
+import { DocumentsPanel } from '@/components/DocumentsPanel';
 import { FormField, inputClass, selectClass, btnPrimary, btnSecondary } from '@/components/ui/FormField';
 
 type Lead = {
@@ -44,6 +45,7 @@ export default function LeadsPage() {
   const [convert, setConvert] = useState<Lead | null>(null);
   const [history, setHistory] = useState<Lead | null>(null);
   const [activities, setActivities] = useState<Lead | null>(null);
+  const [docs, setDocs] = useState<Lead | null>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     companyName: '', firstName: '', lastName: '', email: '', phone: '', title: '', source: 'web',
@@ -138,6 +140,7 @@ export default function LeadsPage() {
                       {lead.status !== 'converted' ? (
                         <button type="button" className="font-medium text-slate-600 hover:underline" onClick={() => setEdit(lead)}>Edit</button>
                       ) : null}
+                      <button type="button" className="ml-3 font-medium text-slate-500 hover:underline" onClick={() => setDocs(lead)}>Docs</button>
                       <button type="button" className="ml-3 font-medium text-slate-500 hover:underline" onClick={() => setActivities(lead)}>Activities</button>
                       <button type="button" className="ml-3 font-medium text-slate-500 hover:underline" onClick={() => setHistory(lead)}>History</button>
                       {lead.status !== 'converted' ? (
@@ -192,6 +195,7 @@ export default function LeadsPage() {
       {convert ? <ConvertModal lead={convert} onClose={() => setConvert(null)} onDone={() => { setConvert(null); void reload(); }} /> : null}
       {history ? <HistoryDrawer entityType="lead" entityId={history.id} title={history.companyName} onClose={() => setHistory(null)} onReverted={() => void reload()} /> : null}
       {activities ? <ActivitiesPanel relatedType="lead" relatedId={activities.id} title={activities.companyName} onClose={() => setActivities(null)} /> : null}
+      {docs ? <DocumentsPanel entityType="lead" entityId={docs.id} title={docs.companyName} onClose={() => setDocs(null)} /> : null}
     </div>
   );
 }

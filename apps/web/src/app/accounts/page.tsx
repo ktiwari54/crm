@@ -15,6 +15,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { HistoryDrawer } from '@/components/HistoryDrawer';
 import { ActivitiesPanel } from '@/components/ActivitiesPanel';
+import { DocumentsPanel } from '@/components/DocumentsPanel';
 import {
   FormField,
   inputClass,
@@ -52,6 +53,7 @@ export default function AccountsPage() {
   const [history, setHistory] = useState<Account | null>(null);
   const [edit, setEdit] = useState<Account | null>(null);
   const [activities, setActivities] = useState<Account | null>(null);
+  const [docs, setDocs] = useState<Account | null>(null);
   const [form, setForm] = useState({
     name: '',
     accountType: 'customer',
@@ -201,6 +203,13 @@ export default function AccountsPage() {
                       <button
                         type="button"
                         className="ml-3 text-xs text-slate-500 hover:underline"
+                        onClick={() => setDocs(account)}
+                      >
+                        Docs
+                      </button>
+                      <button
+                        type="button"
+                        className="ml-3 text-xs text-slate-500 hover:underline"
                         onClick={() => setActivities(account)}
                       >
                         Activities
@@ -279,6 +288,7 @@ export default function AccountsPage() {
 
       {edit ? <EditAccountModal account={edit} onClose={() => setEdit(null)} onDone={() => { setEdit(null); void reload(); }} /> : null}
       {activities ? <ActivitiesPanel relatedType="account" relatedId={activities.id} title={activities.name} onClose={() => setActivities(null)} /> : null}
+      {docs ? <DocumentsPanel entityType="account" entityId={docs.id} title={docs.name} onClose={() => setDocs(null)} /> : null}
     </div>
   );
 }

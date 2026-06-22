@@ -19,6 +19,8 @@ export class DocumentsService {
         ...(entityType === 'deal' && entityId ? { dealId: entityId } : {}),
         ...(entityType === 'quote' && entityId ? { quoteId: entityId } : {}),
         ...(entityType === 'contract' && entityId ? { contractId: entityId } : {}),
+        ...(entityType === 'lead' && entityId ? { leadId: entityId } : {}),
+        ...(entityType === 'contact' && entityId ? { contactId: entityId } : {}),
       },
       include: { uploadedBy: true, account: true, deal: true, contract: true },
       orderBy: { createdAt: 'desc' },
@@ -41,9 +43,21 @@ export class DocumentsService {
     });
   }
 
+  async remove(id: string) {
+    await this.findOne(id);
+    return this.prisma.document.delete({ where: { id } });
+  }
+
   async upload(
     file: Express.Multer.File,
-    meta: { name?: string; accountId?: string; dealId?: string },
+    meta: {
+      name?: string;
+      docType?: string;
+      accountId?: string;
+      dealId?: string;
+      leadId?: string;
+      contactId?: string;
+    },
     uploadedById: string,
   ) {
     if (!file) throw new BadRequestException('No file provided');
@@ -55,11 +69,14 @@ export class DocumentsService {
     return this.prisma.document.create({
       data: {
         name: meta.name || file.originalname,
+        docType: meta.docType,
         fileUrl,
         mimeType: file.mimetype,
         fileSize: file.size,
         account: meta.accountId ? { connect: { id: meta.accountId } } : undefined,
         deal: meta.dealId ? { connect: { id: meta.dealId } } : undefined,
+        lead: meta.leadId ? { connect: { id: meta.leadId } } : undefined,
+        contact: meta.contactId ? { connect: { id: meta.contactId } } : undefined,
         uploadedBy: { connect: { id: uploadedById } },
       },
       include: { uploadedBy: true, account: true, deal: true },
